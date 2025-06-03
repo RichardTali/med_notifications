@@ -1,0 +1,17 @@
+import 'package:flutter/material.dart';
+
+class PlaceholderScreen extends StatelessWidget {
+  final String title;
+
+  const PlaceholderScreen({super.key, required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Text(
+        'Pantalla $title',
+        style: const TextStyle(fontSize: 24),
+      ),
+    );
+  }
+}
