@@ -1,16 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:med_notifications/db/db_helper.dart';
+import 'package:med_notifications/models/medicamento.dart';
+import 'package:med_notifications/screens/medicamento_screen.dart';
 
-class formularioMedicamento extends StatefulWidget {
-  const formularioMedicamento({super.key});
+
+class FormularioMedicamento extends StatefulWidget {
+  const FormularioMedicamento({super.key});
 
   @override
-  State<formularioMedicamento> createState() => _formularioMedicamentoState();
+  State<FormularioMedicamento> createState() => _FormularioMedicamentoState();
 }
 
-class _formularioMedicamentoState extends State<formularioMedicamento> {
+class _FormularioMedicamentoState extends State<FormularioMedicamento> {
   String? _selectedValue;
   TimeOfDay? _selectedTime;
   DateTime? _selectedDate;
+
+  final TextEditingController _nombreController = TextEditingController();
+  final TextEditingController _cantidadController = TextEditingController();
+  final TextEditingController _inicioController = TextEditingController();
+  final TextEditingController _finController = TextEditingController();
 
   void _updateDateTime(DateTime date, TimeOfDay time) {
     setState(() {
@@ -19,87 +28,66 @@ class _formularioMedicamentoState extends State<formularioMedicamento> {
     });
   }
 
-  void _sheduleNotification() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Simulación: Programado para ${_selectedDate?.day}/${_selectedDate?.month}/${_selectedDate?.year} a las ${_selectedTime?.format(context)}',
-        ),
-      ),
+  @override
+  void dispose() {
+    _nombreController.dispose();
+    _cantidadController.dispose();
+    _inicioController.dispose();
+    _finController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _guardarMedicamento() async {
+    final medicamento = Medicamento(
+      nombre: _nombreController.text,
+      dosis: _selectedValue ?? 'Sin dosis',
+      cantidad: _cantidadController.text,
+      inicio: _inicioController.text,
+      fin: _finController.text,
+      fechaToma: _selectedDate != null
+          ? '${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}'
+          : 'No definida',
+      horaToma: _selectedTime != null ? _selectedTime!.format(context) : 'No definida',
     );
+
+    await DBHelper.insertMedicamento(medicamento);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Medicamento guardado Correctamente')),
+    );
+
+    Navigator.pushReplacement(
+    context,
+    MaterialPageRoute(builder: (context) => MedicamentoScreen()),
+  );
   }
 
   @override
   Widget build(BuildContext context) {
-    final TextTheme = Theme.of(context).textTheme;
-    return SingleChildScrollView(
-      child: SizedBox(
-        height: 800,
-        width: double.infinity,
+    return Scaffold(
+      appBar: AppBar(title: const Text('Registrar Medicamento')),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            Container(
-              height: 6,
-              width: 48,
-              margin: const EdgeInsets.only(top: 12),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(3),
-              ),
-            ),
-            const Padding(
-              padding: EdgeInsets.all(20),
-              child: Text(
-                'Registrar Medicamento',
-                style: TextStyle(
-                  fontSize: 20,
-                  color: Colors.teal,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'Nombre del medicamento',
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall!.copyWith(color: Colors.teal),
-            ),
-            const TextField(
+            TextField(
+              controller: _nombreController,
               textAlign: TextAlign.center,
-              decoration: InputDecoration.collapsed(
-                hintText: 'Ingrese el nombre del medicamento',
-                hintStyle: TextStyle(color: Colors.grey),
+              decoration: const InputDecoration(
+                labelText: 'Nombre del medicamento',
               ),
             ),
             const SizedBox(height: 20),
-            Text(
-              'Dosis',
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall!.copyWith(color: Colors.teal),
-            ),
-            DropdownButton<String>(
+            DropdownButtonFormField<String>(
               value: _selectedValue,
+              decoration: const InputDecoration(labelText: 'Dosis'),
               hint: const Text("Seleccione una opción"),
-              items:
-                  [
-                    'Tableta',
-                    'Capsula',
-                    'Unidad',
-                    'Pastillas',
-                    'Mililitros',
-                    'Miligramos',
-                    'Inyección',
-                    'Gotas',
-                    'Cucharada',
-                    'Cucharaditas',
-                  ].map((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value),
-                    );
-                  }).toList(),
+              items: [
+                'Tableta', 'Capsula', 'Unidad', 'Pastillas', 'Mililitros',
+                'Miligramos', 'Inyección', 'Gotas', 'Cucharada', 'Cucharaditas',
+              ].map((String value) {
+                return DropdownMenuItem<String>(value: value, child: Text(value));
+              }).toList(),
               onChanged: (String? newValue) {
                 setState(() {
                   _selectedValue = newValue;
@@ -107,70 +95,38 @@ class _formularioMedicamentoState extends State<formularioMedicamento> {
               },
             ),
             const SizedBox(height: 20),
-            Text(
-              'Cantidad',
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall!.copyWith(color: Colors.teal),
-            ),
-            const TextField(
+            TextField(
+              controller: _cantidadController,
               textAlign: TextAlign.center,
               keyboardType: TextInputType.number,
-              decoration: InputDecoration.collapsed(
-                hintText: 'Fecha de inicio',
-                hintStyle: TextStyle(color: Colors.grey),
-              ),
+              decoration: const InputDecoration(labelText: 'Cantidad'),
             ),
             const SizedBox(height: 20),
-            const SizedBox(height: 16),
             DateTimeSelector(
               selectedDate: _selectedDate,
               selectedTime: _selectedTime,
               onDateTimeChanged: _updateDateTime,
             ),
-            const SizedBox(height: 16),
-
             const SizedBox(height: 20),
-            Text(
-              'Inicio del tratamiento',
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall!.copyWith(color: Colors.teal),
-            ),
-            const TextField(
+            TextField(
+              controller: _inicioController,
               textAlign: TextAlign.center,
-              decoration: InputDecoration.collapsed(
-                hintText: '20/10/2023',
-                hintStyle: TextStyle(color: Colors.grey),
-              ),
+              decoration: const InputDecoration(labelText: 'Inicio del tratamiento'),
             ),
-
             const SizedBox(height: 20),
-            Text(
-              'Fin del tratamiento',
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall!.copyWith(color: Colors.teal),
-            ),
-            const TextField(
+            TextField(
+              controller: _finController,
               textAlign: TextAlign.center,
-              decoration: InputDecoration.collapsed(
-                hintText: '20/10/2023',
-                hintStyle: TextStyle(color: Colors.grey),
-              ),
+              decoration: const InputDecoration(labelText: 'Fin del tratamiento'),
             ),
-
-  const SizedBox(height: 20),
+            const SizedBox(height: 30),
             SizedBox(
-              height: 35,
+              height: 45,
               width: 250,
               child: ElevatedButton(
-                onPressed: () {
-                  // Aquí puedes poner tu lógica
-                  print("Medicamento agregado");
-                },
+                onPressed: _guardarMedicamento,
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
-                child: const Text('Add', style: TextStyle(color: Colors.white)),
+                child: const Text('Guardar', style: TextStyle(color: Colors.white)),
               ),
             ),
           ],
@@ -217,57 +173,39 @@ class DateTimeSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        children: [
-          // HORA
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text("Horario de toma", style: Theme.of(
-                context,
-              ).textTheme.bodySmall!.copyWith(color: Colors.teal),),
-                const SizedBox(height: 8),
-                ElevatedButton(
-                  onPressed: () => _selectTime(context),
-                  child: const Text("Seleccionar hora"),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text("Fecha y hora de toma"),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () => _selectDate(context),
+                icon: const Icon(Icons.calendar_today),
+                label: Text(
+                  selectedDate != null
+                      ? '${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}'
+                      : 'Seleccionar fecha',
                 ),
-                if (selectedTime != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text(selectedTime!.format(context)),
-                  ),
-              ],
+              ),
             ),
-          ),
-          const SizedBox(width: 16), 
-          // FECHA
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text("Fecha de toma", style: Theme.of(
-                context,
-              ).textTheme.bodySmall!.copyWith(color: Colors.teal), ),
-                const SizedBox(height: 8),
-                ElevatedButton(
-                  onPressed: () => _selectDate(context),
-                  child: const Text("Seleccionar fecha"),
+            const SizedBox(width: 12),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () => _selectTime(context),
+                icon: const Icon(Icons.access_time),
+                label: Text(
+                  selectedTime != null
+                      ? selectedTime!.format(context)
+                      : 'Seleccionar hora',
                 ),
-                if (selectedDate != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text(
-                      '${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}',
-                    ),
-                  ),
-              ],
+              ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
+      ],
     );
   }
 }
